@@ -1,9 +1,6 @@
 package com.trademaster;
 
 import com.google.inject.Provides;
-
-import javax.inject.Inject;
-
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -17,8 +14,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 
-import java.io.File;
-import java.io.InputStream;
+import javax.inject.Inject;
 
 @Slf4j
 @PluginDescriptor(

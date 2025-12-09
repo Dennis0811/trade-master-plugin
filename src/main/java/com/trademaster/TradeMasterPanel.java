@@ -1,12 +1,13 @@
 package com.trademaster;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.text.NumberFormat;
 
+@Slf4j
 public class TradeMasterPanel extends PluginPanel {
     public TradeMasterPanel() {
         final int Y_GAP = 5;
@@ -78,11 +79,43 @@ public class TradeMasterPanel extends PluginPanel {
         searchPanel.add(searchField);
 
 
+        JLabel salesTitle = new JLabel("Sales".toUpperCase());
+        JLabel salesTotalEarned = new JLabel("Total Earned");
+        JLabel salesTotalEarnedValue = new JLabel(abbreviateNumber(87838) + " GP");
+        JLabel salesTopItem = new JLabel("Top Item");
+        JLabel salesTopItemValue = new JLabel("Logs");
+
+        JPanel salesGroup = new JPanel();
+        salesGroup.setLayout(new BoxLayout(salesGroup, BoxLayout.Y_AXIS));
+
+        JPanel salesTitleContainer = new JPanel();
+        JPanel salesTotalEarnedContainer = new JPanel();
+        JPanel salesTopItemContainer = new JPanel();
+        salesTitleContainer.setLayout(new BoxLayout(salesTitleContainer, BoxLayout.X_AXIS));
+        salesTotalEarnedContainer.setLayout(new BoxLayout(salesTotalEarnedContainer, BoxLayout.X_AXIS));
+        salesTopItemContainer.setLayout(new BoxLayout(salesTopItemContainer, BoxLayout.X_AXIS));
+
+        salesTitleContainer.add(salesTitle);
+        salesTitleContainer.add(Box.createHorizontalGlue());
+        salesGroup.add(salesTitleContainer);
+
+        salesTotalEarnedContainer.add(salesTotalEarned);
+        salesTotalEarnedContainer.add(Box.createHorizontalGlue());
+        salesTotalEarnedContainer.add(salesTotalEarnedValue);
+        salesGroup.add(salesTotalEarnedContainer);
+
+        salesTopItemContainer.add(salesTopItem);
+        salesTopItemContainer.add(Box.createHorizontalGlue());
+        salesTopItemContainer.add(salesTopItemValue);
+        salesGroup.add(salesTopItemContainer);
+
+
         add(homeWealthGroup);
         add(searchPanel);
         add(watchlistButton);
         add(offersButton);
         add(tradesButton);
+        add(salesGroup);
     }
 
     private static String formatNumber(long value) {
