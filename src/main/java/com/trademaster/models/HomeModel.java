@@ -3,8 +3,6 @@ package com.trademaster.models;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigInteger;
-
 @Setter
 @Getter
 public class HomeModel {
@@ -27,5 +25,4 @@ public class HomeModel {
     public long getPlayerWealth() {
         return bankWealth + inventoryWealth + geWealth;
     }
-
 }

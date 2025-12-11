@@ -1,7 +1,6 @@
 package com.trademaster.views.home;
 
 import com.trademaster.controllers.HomeController;
-import com.trademaster.models.PlayerWealth;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.IconTextField;
@@ -51,15 +50,15 @@ public class HomeView extends PluginPanel {
         JButton tradesButton = createPanelButton("/ledger_icon.png", "Trade History");
 
         // Home Panel Sections
-        JPanel salesSection = createHomeSection("Sales", List.of(
-                new AbstractMap.SimpleEntry<>("Total Earned", "PLACEHOLDER"),
-                new AbstractMap.SimpleEntry<>("Top Item", "PLACEHOLDER")));
-        JPanel expensesSection = createHomeSection("Expenses", List.of(
-                new AbstractMap.SimpleEntry<>("Total Paid", "PLACEHOLDER"),
-                new AbstractMap.SimpleEntry<>("Top Item", "PLACEHOLDER")));
-        JPanel profitSection = createHomeSection("Profits", List.of(
-                new AbstractMap.SimpleEntry<>("Total Gains", "PLACEHOLDER"),
-                new AbstractMap.SimpleEntry<>("Most Profitable Item", "PLACEHOLDER")));
+        JPanel salesSection = createHomeSection("Sales",
+                List.of(new AbstractMap.SimpleEntry<>("Total Earned", "PLACEHOLDER"),
+                        new AbstractMap.SimpleEntry<>("Top Item", "PLACEHOLDER")));
+        JPanel expensesSection = createHomeSection("Expenses",
+                List.of(new AbstractMap.SimpleEntry<>("Total Paid", "PLACEHOLDER"),
+                        new AbstractMap.SimpleEntry<>("Top Item", "PLACEHOLDER")));
+        JPanel profitSection = createHomeSection("Profits",
+                List.of(new AbstractMap.SimpleEntry<>("Total Gains", "PLACEHOLDER"),
+                        new AbstractMap.SimpleEntry<>("Most Profitable Item", "PLACEHOLDER")));
 
 
         add(header);
@@ -72,18 +71,16 @@ public class HomeView extends PluginPanel {
         add(profitSection);
 
 
-
-
         controller.setView(this);
         controller.refresh();
     }
 
-    public void setWealthText(PlayerWealth wealth) {
-        wealthLabel.setText(wealth.getTotalAbbreviated());
-        wealthLabel.setToolTipText("Bank: " + wealth.getBank() + "\n" +
-                "Inventory: " + wealth.getInventory() + "\n" +
-                "GE Offers: " + wealth.getGe() + "\n" +
-                "Total: " + wealth.getTotal());
+    public void setWealthText(String bank, String inventory, String ge, String total, String totalAbbreviated) {
+        wealthLabel.setText(totalAbbreviated);
+        wealthLabel.setToolTipText("Bank: " + bank + "\n" +
+                "Inventory: " + inventory + "\n" +
+                "GE Offers: " + ge + "\n" +
+                "Total: " + total);
     }
 
     private ImageIcon getScaledIcon(String path, int w, int h) {

@@ -1,7 +1,6 @@
 package com.trademaster.controllers;
 
 import com.trademaster.models.HomeModel;
-import com.trademaster.models.PlayerWealth;
 import com.trademaster.views.home.HomeView;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,15 +29,15 @@ public class HomeController {
         long inventory = model.getInventoryWealth();
         long ge = model.getGeWealth();
 
-        PlayerWealth wealth = new PlayerWealth(
+        view.setWealthText(
                 formatNumber(bank),
                 formatNumber(inventory),
                 formatNumber(ge),
                 formatNumber(total),
-                abbreviateNumber(total));
-
-        view.setWealthText(wealth);
+                abbreviateNumber(total)
+        );
     }
+
 
     public String formatNumber(long value) {
         return NumberFormat.getNumberInstance().format(value);
