@@ -12,7 +12,8 @@ import java.text.NumberFormat;
 
 @Slf4j
 public class HomeController {
-    final private TradeMasterConfig CONFIG;
+    @Inject
+    private final TradeMasterConfig CONFIG;
 
     @Inject
     private final HomeModel model;

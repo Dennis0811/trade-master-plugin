@@ -9,8 +9,11 @@ import com.trademaster.models.HomeModel;
 import com.trademaster.views.home.HomeView;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
+import net.runelite.api.events.*;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.api.widgets.WidgetID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -19,6 +22,7 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.grandexchange.GrandExchangeClient;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
@@ -62,6 +66,10 @@ public class TradeMasterPlugin extends Plugin {
 
         playerInitialized = false;
 
+        model = new HomeModel();
+        controller = new HomeController(config, model);
+        HomeView view = new HomeView(controller);
+
         if (client.getGameState() == GameState.LOGGED_IN) {
             clientThread.invokeLater(this::createDbManager);
         }
@@ -72,14 +80,9 @@ public class TradeMasterPlugin extends Plugin {
             playerData = earlyDb.getDbFileData();
         }
 
-        model = new HomeModel();
-
         if (playerData != null) {
             model.loadWealthDataFromFile(playerData);
         }
-
-        controller = new HomeController(config, model);
-        HomeView view = new HomeView(controller);
 
         navButton = NavigationButton.builder()
                 .tooltip("Trade Master")
@@ -147,11 +150,55 @@ public class TradeMasterPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onGameTick(GameTick event) {
-        // TODO: I dont want to do this onGameTick but every 60s
-        ItemContainer invContainer = client.getItemContainer(InventoryID.INVENTORY);
-        ItemContainer bankContainer = client.getItemContainer(InventoryID.BANK);
+    public void onWidgetLoaded(WidgetLoaded widgetLoaded) {
+        if (widgetLoaded.getGroupId() == WidgetID.BANK_GROUP_ID) {
+            ItemContainer bankContainer = client.getItemContainer(InventoryID.BANK);
+
+            if (bankContainer != null) {
+                Item[] items = bankContainer.getItems();
+                long bankWealth = 0;
+
+                try {
+                    for (Item item : items) {
+                        int itemId = item.getId();
+                        int itemQuantity = item.getQuantity();
+                        bankWealth += (long) itemManager.getItemPrice(itemId) * itemQuantity; //TODO: what fucking price is this using ???
+                    }
+
+                    model.setBankWealth(bankWealth);
+                    WEALTH_DATA.setBankWealth(bankWealth);
+                    controller.refresh();
+                } catch (Exception e) {
+                    log.warn("Failed to fetch GE price for bank: {}", bankWealth);
+                }
+            }
+        }
+    }
+
+    @Subscribe
+    public void onGrandExchangeOfferChanged(GrandExchangeOfferChanged grandExchangeOfferChanged) {
         GrandExchangeOffer[] geOffers = client.getGrandExchangeOffers();
+        long geWealth = 0;
+
+        try {
+            for (GrandExchangeOffer offer : geOffers) {
+                int itemQuantity = offer.getTotalQuantity();
+                int itemPrice = offer.getPrice();
+                geWealth += (long) itemPrice * itemQuantity; //TODO: what fucking price is this using ???
+            }
+
+            model.setGeWealth(geWealth);
+            WEALTH_DATA.setGeWealth(geWealth);
+            controller.refresh();
+        } catch (Exception e) {
+            log.warn("Failed to fetch GE price for GE: {}", geWealth);
+        }
+    }
+
+
+    @Subscribe
+    public void onGameTick(GameTick event) {
+        ItemContainer invContainer = client.getItemContainer(InventoryID.INVENTORY);
 
         if (invContainer != null) {
             Item[] items = invContainer.getItems();
@@ -169,41 +216,6 @@ public class TradeMasterPlugin extends Plugin {
             } catch (Exception e) {
                 log.warn("Failed to fetch GE price for inventory: {}", invWealth);
             }
-        }
-
-        if (bankContainer != null) {
-            Item[] items = bankContainer.getItems();
-            long bankWealth = 0;
-
-            try {
-                for (Item item : items) {
-                    int itemId = item.getId();
-                    int itemQuantity = item.getQuantity();
-                    bankWealth += (long) itemManager.getItemPrice(itemId) * itemQuantity; //TODO: what fucking price is this using ???
-                }
-
-                model.setBankWealth(bankWealth);
-                WEALTH_DATA.setBankWealth(bankWealth);
-                controller.refresh();
-            } catch (Exception e) {
-                log.warn("Failed to fetch GE price for bank: {}", bankWealth);
-            }
-        }
-
-        long geWealth = 0;
-
-        try {
-            for (GrandExchangeOffer offer : geOffers) {
-                int itemQuantity = offer.getTotalQuantity();
-                int itemPrice = offer.getPrice();
-                geWealth += (long) itemPrice * itemQuantity; //TODO: what fucking price is this using ???
-            }
-
-            model.setGeWealth(geWealth);
-            WEALTH_DATA.setGeWealth(geWealth);
-            controller.refresh();
-        } catch (Exception e) {
-            log.warn("Failed to fetch GE price for GE: {}", geWealth);
         }
     }
 
