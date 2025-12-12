@@ -15,6 +15,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ClientShutdown;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -48,11 +49,11 @@ public class TradeMasterPlugin extends Plugin {
     private NavigationButton navButton;
     private HomeModel model;
     private HomeController controller;
-    private HomeView view;
     private boolean playerInitialized = false;
     private DbManager db;
     private PlayerData playerData;
-    private WealthData wealthData = new WealthData();
+
+    private final WealthData WEALTH_DATA = new WealthData();
 
 
     @Override
@@ -77,8 +78,8 @@ public class TradeMasterPlugin extends Plugin {
             model.loadWealthDataFromFile(playerData);
         }
 
-        controller = new HomeController(model);
-        view = new HomeView(controller);
+        controller = new HomeController(config, model);
+        HomeView view = new HomeView(controller);
 
         navButton = NavigationButton.builder()
                 .tooltip("Trade Master")
@@ -134,8 +135,9 @@ public class TradeMasterPlugin extends Plugin {
 
         // Success
         playerInitialized = true;
-        db = new DbManager(name, wealthData);
+        db = new DbManager(name, WEALTH_DATA);
 
+        // Fill model with actual DB data, now that we can get that
         playerData = db.getDbFileData();
 
         if (playerData != null) {
@@ -162,7 +164,7 @@ public class TradeMasterPlugin extends Plugin {
                     invWealth += (long) itemManager.getItemPrice(itemId) * itemQuantity; //TODO: what fucking price is this using ???
                 }
                 model.setInventoryWealth(invWealth);
-                wealthData.setInventoryWealth(invWealth);
+                WEALTH_DATA.setInventoryWealth(invWealth);
                 controller.refresh();
             } catch (Exception e) {
                 log.warn("Failed to fetch GE price for inventory: {}", invWealth);
@@ -181,7 +183,7 @@ public class TradeMasterPlugin extends Plugin {
                 }
 
                 model.setBankWealth(bankWealth);
-                wealthData.setBankWealth(bankWealth);
+                WEALTH_DATA.setBankWealth(bankWealth);
                 controller.refresh();
             } catch (Exception e) {
                 log.warn("Failed to fetch GE price for bank: {}", bankWealth);
@@ -198,7 +200,7 @@ public class TradeMasterPlugin extends Plugin {
             }
 
             model.setGeWealth(geWealth);
-            wealthData.setGeWealth(geWealth);
+            WEALTH_DATA.setGeWealth(geWealth);
             controller.refresh();
         } catch (Exception e) {
             log.warn("Failed to fetch GE price for GE: {}", geWealth);
@@ -209,6 +211,13 @@ public class TradeMasterPlugin extends Plugin {
     @Provides
     TradeMasterConfig provideConfig(ConfigManager configManager) {
         return configManager.getConfig(TradeMasterConfig.class);
+    }
+
+    @Subscribe
+    public void onConfigChanged(ConfigChanged configChanged) {
+        if (configChanged.getGroup().equals("trademaster")) {
+            controller.refresh();
+        }
     }
 
 

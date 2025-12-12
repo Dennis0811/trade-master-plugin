@@ -1,21 +1,27 @@
 package com.trademaster.controllers;
 
+import com.trademaster.TradeMasterConfig;
 import com.trademaster.models.HomeModel;
 import com.trademaster.views.home.HomeView;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.inject.Inject;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 @Slf4j
 public class HomeController {
+    final private TradeMasterConfig CONFIG;
+
+    @Inject
     private final HomeModel model;
 
     @Setter
     private HomeView view;
 
-    public HomeController(HomeModel model) {
+    public HomeController(TradeMasterConfig config, HomeModel model) {
+        this.CONFIG = config;
         this.model = model;
     }
 
@@ -30,11 +36,11 @@ public class HomeController {
         long ge = model.getGeWealth();
 
         view.setWealthText(
-                formatNumber(bank),
-                formatNumber(inventory),
-                formatNumber(ge),
-                formatNumber(total),
-                abbreviateNumber(total)
+                CONFIG.abbreviateHoverBank() ? abbreviateNumber(bank) : formatNumber(bank),
+                CONFIG.abbreviateHoverInventory() ? abbreviateNumber(inventory) : formatNumber(inventory),
+                CONFIG.abbreviateHoverGe() ? abbreviateNumber(ge) : formatNumber(ge),
+                CONFIG.abbreviateGpTotal() ? abbreviateNumber(total) : formatNumber(total),
+                CONFIG.abbreviateHoverGpTotal() ? abbreviateNumber(total) : formatNumber(total)
         );
     }
 
@@ -44,13 +50,13 @@ public class HomeController {
     }
 
     public String abbreviateNumber(long value) {
-        final long minNumber = 1_000_000_000_000L;
+        final long minNumber = CONFIG.abbreviateThreshold().getValue();
 
         if (value < minNumber) {
             return formatNumber(value);
         }
 
-        String[] suffixes = {"", "K", "M", "B", "T", "Qa", "Qi", "Oc"};
+        String[] suffixes = {"", "K", "M", "B", "T", "Qa", "Qi", "Se"};
         int suffixIndex = 0;
         double dividedValue = value;
 

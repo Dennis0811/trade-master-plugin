@@ -75,12 +75,12 @@ public class HomeView extends PluginPanel {
         controller.refresh();
     }
 
-    public void setWealthText(String bank, String inventory, String ge, String total, String totalAbbreviated) {
-        wealthLabel.setText(totalAbbreviated);
+    public void setWealthText(String bank, String inventory, String ge, String total, String onHoverTotal) {
+        wealthLabel.setText(total);
         wealthLabel.setToolTipText("Bank: " + bank + "\n" +
                 "Inventory: " + inventory + "\n" +
                 "GE Offers: " + ge + "\n" +
-                "Total: " + total);
+                "Total: " + onHoverTotal);
     }
 
     private ImageIcon getScaledIcon(String path, int w, int h) {

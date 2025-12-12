@@ -1,84 +1,81 @@
 package com.trademaster;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-
-import java.awt.*;
+import com.trademaster.types.AbbreviateThresholdTypes;
+import net.runelite.client.config.*;
 
 @ConfigGroup("trademaster")
 public interface TradeMasterConfig extends Config {
-    @ConfigItem(
-            keyName = "lastPlayer",
-            name = "Last Player",
-            description = "Stores the last logged in player"
+    @ConfigSection(
+            name = "Abbreviate numbers",
+            description = "Turn big numbers into short forms like 1.2 M or 2.5 B.",
+            position = 1
     )
-    default String lastPlayer() {
-        return "";
-    }
+    String shortenSection = "shortenSection";
 
     @ConfigItem(
-            position = 6,
-            keyName = "greeting",
-            name = "Welcome Greeting",
-            description = "The message to show to the user when they login"
-    )
-    default String greeting() {
-        return "Hello";
-    }
-
-    //    Testing some stuff from here on
-    @ConfigItem(
+            section = shortenSection,
             position = 1,
-            keyName = "myCheckbox",
-            name = "Checkbox",
-            description = "Description Hover Text"
+            keyName = "abbreviateThreshold",
+            name = "Abbreviate numbers above",
+            description = "Show abbreviated format (1.2 M) for numbers larger than this value."
     )
-    default boolean myCheckbox() {
+    default AbbreviateThresholdTypes abbreviateThreshold() {
+        return AbbreviateThresholdTypes.TRILLION;
+    }
+
+    @ConfigItem(
+            section = shortenSection,
+            position = 2,
+            keyName = "abbreviateGpTotal",
+            name = "Abbreviate GP total",
+            description = "Turn on abbreviated GP display."
+    )
+    default boolean abbreviateGpTotal() {
         return true;
     }
 
     @ConfigItem(
+            section = shortenSection,
             position = 3,
-            keyName = "mySpinner",
-            name = "Spinner",
-            description = "Description Hover Text"
+            keyName = "abbreviateHoverGpTotal",
+            name = "Abbreviate tooltip GP total",
+            description = "Abbreviates GP total value in tooltip."
     )
-    default int mySpinner() {
-        return 0;
+    default boolean abbreviateHoverGpTotal() {
+        return false;
     }
 
     @ConfigItem(
-            position = 2,
-            keyName = "mySpinnerX2",
-            name = "SpinnerX2",
-            description = "Description Hover Text"
-    )
-    default Dimension mySpinnerX2() {
-        return new Dimension(3, 5);
-    }
-
-    @ConfigItem(
+            section = shortenSection,
             position = 4,
-            keyName = "myColor",
-            name = "Colorpicker",
-            description = "Description Hover Text"
+            keyName = "abbreviateHoverBank",
+            name = "Abbreviate tooltip bank value",
+            description = "Abbreviates bank value in tooltip."
     )
-    default Color myColor() {
-        return new Color(255, 255, 0);
+    default boolean abbreviateHoverBank() {
+        return false;
     }
 
     @ConfigItem(
+            section = shortenSection,
             position = 5,
-            keyName = "myEnum",
-            name = "Enum",
-            description = "Description Hover Text"
+            keyName = "abbreviateHoverInventory",
+            name = "Abbreviate tooltip inventory value",
+            description = "Abbreviates inventory value in tooltip."
     )
-    default TestEnum myEnum() {
-        return TestEnum.SECOND;
+    default boolean abbreviateHoverInventory() {
+        return false;
     }
 
-    enum TestEnum {FIRST, SECOND, THIRD}
-
+    @ConfigItem(
+            section = shortenSection,
+            position = 6,
+            keyName = "abbreviateHoverGe",
+            name = "Abbreviate tooltip GE value",
+            description = "Abbreviates Grand Exchange value in tooltip."
+    )
+    default boolean abbreviateHoverGe() {
+        return false;
+    }
 }
 
