@@ -75,6 +75,7 @@ public class GEPriceService {
             log.warn("Failed to fetch item price data {}", e.getMessage());
             return null;
         }
+
     }
 }
 

@@ -12,10 +12,7 @@ import com.trademaster.services.models.GEItemPriceData;
 import com.trademaster.views.home.HomeView;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.BeforeRender;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GrandExchangeOfferChanged;
-import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
@@ -71,6 +68,8 @@ public class TradeMasterPlugin extends Plugin {
     private HomeModel model;
     private HomeController controller;
     private boolean playerInitialized = false;
+    private int lastHoveredItemId;
+    private GEItemPriceData priceData;
 
 
     @Override
@@ -147,45 +146,58 @@ public class TradeMasterPlugin extends Plugin {
         wealthDataService.updateGe(geOffers);
     }
 
-    //TODO: get most of the logic out of here and only keep drawing tooltip stuff in
     @Subscribe
     public void onBeforeRender(BeforeRender beforeRender) {
         if (client.isMenuOpen()) {
             return;
         }
 
-        MenuEntry[] menuEntries = client.getMenuEntries();
-        int lastEntryId = menuEntries.length - 1;
+        MenuEntry menuEntry = getLastMenuEntry();
 
-        if (lastEntryId < 0) {
+        if (menuEntry == null) return;
+
+        int itemId = menuEntry.getItemId();
+
+        if (itemId < 1) return;
+
+        ItemComposition itemComp = itemManager.getItemComposition(itemId);
+
+        if (!itemComp.isTradeable()) return;
+
+        Widget widget = menuEntry.getWidget();
+
+        if (shouldEnableTooltip(widget)) {
+            int lastBuyPrice = priceData.getHigh();
+            int lastSellPrice = priceData.getLow();
+            long lastBuyTime = priceData.getHighTime();
+            long lastSellTime = priceData.getLowTime();
+            int highAlchemyPrice = itemComp.getHaPrice();
+            String customMenuEntryText = createCustomMenuEntry(lastBuyPrice, lastSellPrice, lastBuyTime, lastSellTime, highAlchemyPrice);
+            String formattedText = ColorUtil.prependColorTag(customMenuEntryText, Color.WHITE);
+            tooltipManager.add(new Tooltip(formattedText));
+        }
+    }
+
+    @Subscribe
+    public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded) {
+        MenuEntry menuEntry = getLastMenuEntry();
+        int itemId = menuEntry.getItemId();
+
+        if (lastHoveredItemId == itemId || itemId < 1) {
             return;
         }
 
-        MenuEntry menuEntry = menuEntries[lastEntryId];
-        int itemId = menuEntry.getItemId();
         ItemComposition itemComp = itemManager.getItemComposition(itemId);
 
-        if (itemId < 1 || !itemComp.isTradeable()) {
+        if (!itemComp.isTradeable()) {
             return;
         }
 
         Widget widget = menuEntry.getWidget();
-        GEItemPriceData priceData = gePriceService.getPrice(itemId);
-        int lastBuyPrice = priceData.getHigh();
-        int lastSellPrice = priceData.getLow();
-        long lastBuyTime = priceData.getHighTime();
-        long lastSellTime = priceData.getLowTime();
-        int highAlchemyPrice = itemComp.getHaPrice();
 
-        String customMenuEntryText = createCustomMenuEntry(lastBuyPrice, lastSellPrice, lastBuyTime, lastSellTime, highAlchemyPrice);
-
-        if (widget != null &&
-                (WidgetInfo.INVENTORY.getId() == widget.getId()
-                        || WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
-                        || WidgetInfo.BANK_ITEM_CONTAINER.getId() == widget.getId())
-        ) {
-            String formattedText = ColorUtil.prependColorTag(customMenuEntryText, Color.WHITE);
-            tooltipManager.add(new Tooltip(formattedText));
+        if (shouldEnableTooltip(widget)) {
+            priceData = gePriceService.getPrice(itemId);
+            lastHoveredItemId = itemId;
         }
     }
 
@@ -267,9 +279,22 @@ public class TradeMasterPlugin extends Plugin {
         long hours = minutes / 60;
         long days = hours / 24;
 
-        if (seconds < 60) return seconds + "s ago";
+        if (seconds < 60) return seconds + "sec ago";
         if (minutes < 60) return minutes + "min ago";
         if (hours < 24) return hours + "h ago";
         return days + " days ago";
+    }
+
+    private boolean shouldEnableTooltip(Widget widget) {
+        return widget != null && (WidgetInfo.INVENTORY.getId() == widget.getId()
+                || WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
+                || WidgetInfo.BANK_ITEM_CONTAINER.getId() == widget.getId());
+    }
+
+    private MenuEntry getLastMenuEntry() {
+        MenuEntry[] menuEntries = client.getMenuEntries();
+        int lastEntryId = menuEntries.length - 1;
+        if (lastEntryId < 0) return null;
+        return menuEntries[lastEntryId];
     }
 }
