@@ -100,10 +100,10 @@ public class TradeMasterPlugin extends Plugin {
 
     @Subscribe
     public void onClientShutdown(ClientShutdown clientShutdown) {
-        log.info("Client shuts down!");
-
         autoSaveService.stop();
         dbService.close();
+
+        log.info("Client shuts down!");
     }
 
     @Subscribe

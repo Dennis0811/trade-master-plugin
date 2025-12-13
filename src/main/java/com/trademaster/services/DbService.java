@@ -21,10 +21,6 @@ public class DbService {
         return dbManager;
     }
 
-    public boolean isReady() {
-        return dbManager != null;
-    }
-
     public void close() {
         if (dbManager != null) {
             dbManager.writeToFile();
