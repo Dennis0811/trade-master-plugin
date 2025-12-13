@@ -24,7 +24,7 @@ public class HomeModel {
         this.inventoryWealth = wealthData.getInventoryWealth();
         this.geWealth = wealthData.getGeWealth();
     }
-
+    
     public long getPlayerWealth() {
         return bankWealth + inventoryWealth + geWealth;
     }

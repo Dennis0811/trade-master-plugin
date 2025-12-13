@@ -36,6 +36,7 @@ public interface TradeMasterConfig extends Config {
         return true;
     }
 
+
     @ConfigSection(
             name = "Abbreviate numbers",
             description = "Turn big numbers into short forms like 1.2 M or 2.5 B.",
@@ -107,6 +108,79 @@ public interface TradeMasterConfig extends Config {
     )
     default boolean abbreviateHoverGeEnabled() {
         return false;
+    }
+
+
+    @ConfigSection(
+            position = 3,
+            name = "Tooltip GE info",
+            description = "Shows various information from the Grand Exchange in the tooltip when hovering over an item."
+    )
+    String tooltipInfo = "tooltipInfo";
+
+    @ConfigItem(section = tooltipInfo,
+            position = 1,
+            keyName = "geTooltipEnabled",
+            name = "Show tooltip information",
+            description = "Displays additional tooltip information when hovering over an item."
+    )
+    default boolean geTooltipEnabled() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = tooltipInfo,
+            position = 2,
+            keyName = "showLastBuyPrice",
+            name = "Show last buy price",
+            description = "Displays the price at which the item was bought the last time."
+    )
+    default boolean showLastBuyPrice() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = tooltipInfo,
+            position = 3,
+            keyName = "showLastSellPrice",
+            name = "Show last sell price",
+            description = "Displays the price at which the item was sold the last time."
+    )
+    default boolean showLastSellPrice() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = tooltipInfo,
+            position = 4,
+            keyName = "showLastBuyTime",
+            name = "Show last buy time",
+            description = "Displays the time when the item was bought the last time."
+    )
+    default boolean showLastBuyTime() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = tooltipInfo,
+            position = 5,
+            keyName = "showLastSellTime",
+            name = "Show last sell time",
+            description = "Displays the time when the item was sold the last time."
+    )
+    default boolean showLastSellTime() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = tooltipInfo,
+            position = 6,
+            keyName = "showHaPrice",
+            name = "Show HA price",
+            description = "Displays the high alchemy price of an item."
+    )
+    default boolean showHaPrice() {
+        return true;
     }
 }
 

@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -71,6 +72,12 @@ public class TradeMasterPlugin extends Plugin {
     private boolean playerInitialized = false;
     private int lastHoveredItemId;
     private GEItemPriceData priceData;
+    private boolean showLastBuyPrice;
+    private boolean showLastSellPrice;
+    private boolean showLastBuyTime;
+    private boolean showLastSellTime;
+    private boolean showHaPrice;
+    private boolean geTooltipEnabled;
 
 
     @Override
@@ -91,6 +98,13 @@ public class TradeMasterPlugin extends Plugin {
             model.loadWealthDataFromFile(preliminaryDbData);
             controller.refresh();
         }
+
+        showLastBuyPrice = config.showLastBuyPrice();
+        showLastSellPrice = config.showLastSellPrice();
+        showLastBuyTime = config.showLastBuyTime();
+        showLastSellTime = config.showLastSellTime();
+        showHaPrice = config.showHaPrice();
+        geTooltipEnabled = config.geTooltipEnabled();
 
         navButton = NavigationButton.builder()
                 .tooltip("Trade Master")
@@ -149,7 +163,7 @@ public class TradeMasterPlugin extends Plugin {
 
     @Subscribe
     public void onBeforeRender(BeforeRender beforeRender) {
-        if (client.isMenuOpen()) return;
+        if (client.isMenuOpen() || !geTooltipEnabled) return;
         MenuEntry menuEntry = getLastMenuEntry();
         if (menuEntry == null || !shouldEnableTooltip(menuEntry)) return;
 
@@ -167,6 +181,7 @@ public class TradeMasterPlugin extends Plugin {
 
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded) {
+        if (!geTooltipEnabled) return;
         MenuEntry menuEntry = getLastMenuEntry();
         if (menuEntry == null) return;
         int itemId = menuEntry.getItemId();
@@ -193,6 +208,24 @@ public class TradeMasterPlugin extends Plugin {
                 } else {
                     autoSaveService.stop();
                 }
+            }
+            if (configChanged.getKey().equals("geTooltipEnabled")) {
+                geTooltipEnabled = config.geTooltipEnabled();
+            }
+            if (configChanged.getKey().equals("showLastBuyPrice")) {
+                showLastBuyPrice = config.showLastBuyPrice();
+            }
+            if (configChanged.getKey().equals("showLastSellPrice")) {
+                showLastSellPrice = config.showLastSellPrice();
+            }
+            if (configChanged.getKey().equals("showLastBuyTime")) {
+                showLastBuyTime = config.showLastBuyTime();
+            }
+            if (configChanged.getKey().equals("showLastSellTime")) {
+                showLastSellTime = config.showLastSellTime();
+            }
+            if (configChanged.getKey().equals("showHaPrice")) {
+                showHaPrice = config.showHaPrice();
             }
         }
     }
@@ -228,14 +261,35 @@ public class TradeMasterPlugin extends Plugin {
     }
 
     private String createCustomMenuEntry(int lastBuyPrice, int lastSellPrice, long lastBuyTime, long lastSellTime, int highAlchemyPrice) {
-        return String.format(
-                "%s: %d GP<br>%s: %d GP<br>%s: %s<br>%s: %s<br>%s: %d GP",
-                "Last GE Buy Price", lastBuyPrice,
-                "Last GE Sell Price", lastSellPrice,
-                "Last GE Buy Time", timeAgo(lastBuyTime),
-                "Last GE Sell Time", timeAgo(lastSellTime),
-                "HA", highAlchemyPrice
-        );
+        StringBuilder formatString = new StringBuilder();
+        ArrayList<Object> arrayList = new ArrayList<>();
+
+        if (showLastBuyPrice) {
+            formatString.append("%s: %d GP<br>");
+            arrayList.add("Last GE Buy Price");
+            arrayList.add(lastBuyPrice);
+        }
+        if (showLastSellPrice) {
+            formatString.append("%s: %d GP<br>");
+            arrayList.add("Last GE Sell Price");
+            arrayList.add(lastSellPrice);
+        }
+        if (showLastBuyTime) {
+            formatString.append("%s: %s<br>");
+            arrayList.add("Last GE Buy Time");
+            arrayList.add(timeAgo(lastBuyTime));
+        }
+        if (showLastSellTime) {
+            formatString.append("%s: %s<br>");
+            arrayList.add("Last GE Sell Time");
+            arrayList.add(timeAgo(lastSellTime));
+        }
+        if (showHaPrice) {
+            formatString.append("%s: %d GP");
+            arrayList.add("HA");
+            arrayList.add(highAlchemyPrice);
+        }
+        return String.format(formatString.toString(), arrayList.toArray());
     }
 
     private String convertUnixTimeToLocal(long unixTime) {
