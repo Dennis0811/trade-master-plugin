@@ -2,17 +2,15 @@ package com.trademaster;
 
 import com.google.inject.Provides;
 import com.trademaster.controllers.HomeController;
-import com.trademaster.db.DbManager;
 import com.trademaster.db.models.PlayerData;
 import com.trademaster.db.models.WealthData;
 import com.trademaster.models.HomeModel;
+import com.trademaster.services.AutoSaveService;
+import com.trademaster.services.DbService;
 import com.trademaster.views.home.HomeView;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.gameval.VarClientID;
-import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -22,7 +20,6 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.grandexchange.GrandExchangeClient;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
@@ -37,24 +34,24 @@ import javax.inject.Inject;
 public class TradeMasterPlugin extends Plugin {
     @Inject
     private Client client;
-
     @Inject
     private ClientThread clientThread;
-
     @Inject
     private ClientToolbar clientToolbar;
-
     @Inject
     private TradeMasterConfig config;
-
     @Inject
     private ItemManager itemManager;
+    @Inject
+    private AutoSaveService autoSaveService;
+    @Inject
+    private DbService dbService;
+
 
     private NavigationButton navButton;
     private HomeModel model;
     private HomeController controller;
     private boolean playerInitialized = false;
-    private DbManager db;
     private PlayerData playerData;
 
     private final WealthData WEALTH_DATA = new WealthData();
@@ -70,18 +67,10 @@ public class TradeMasterPlugin extends Plugin {
         controller = new HomeController(config, model);
         HomeView view = new HomeView(controller);
 
-        if (client.getGameState() == GameState.LOGGED_IN) {
-            clientThread.invokeLater(this::createDbManager);
-        }
-
-        DbManager earlyDb = new DbManager();
-
-        if (earlyDb.dbFileExists()) {
-            playerData = earlyDb.getDbFileData();
-        }
-
-        if (playerData != null) {
-            model.loadWealthDataFromFile(playerData);
+        PlayerData preliminaryDbData = dbService.getFallBackData();
+        if (preliminaryDbData != null) {
+            model.loadWealthDataFromFile(preliminaryDbData);
+            controller.refresh();
         }
 
         navButton = NavigationButton.builder()
@@ -98,7 +87,8 @@ public class TradeMasterPlugin extends Plugin {
     protected void shutDown() throws Exception {
         log.info("Trade Master stopped!");
 
-        saveDbData();
+        autoSaveService.stop();
+        dbService.close();
 
         playerInitialized = false;
         clientToolbar.removeNavigation(navButton);
@@ -108,41 +98,37 @@ public class TradeMasterPlugin extends Plugin {
     public void onClientShutdown(ClientShutdown clientShutdown) {
         log.info("Client shuts down!");
 
-        saveDbData();
+        autoSaveService.stop();
+        dbService.close();
     }
 
     @Subscribe
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         if (gameStateChanged.getGameState() == GameState.LOGGED_IN
                 && !playerInitialized) {
-            clientThread.invokeLater(this::createDbManager);
+            clientThread.invokeLater(this::initDbSession);
         } else {
             playerInitialized = false;
         }
     }
 
-    private void createDbManager() {
-        final Player player = client.getLocalPlayer();
+    private void initDbSession() {
+        Player player = client.getLocalPlayer();
 
-        if (player == null) {
-            clientThread.invokeLater(this::createDbManager);
+        if (player == null || player.getName() == null) {
+            clientThread.invokeLater(this::initDbSession);
             return;
         }
 
-        final String name = player.getName();
-
-        if (name == null || name.isEmpty()) {
-            clientThread.invokeLater(this::createDbManager);
-            return;
-        }
-
-        // Success
         playerInitialized = true;
-        db = new DbManager(name, WEALTH_DATA);
 
-        // Fill model with actual DB data, now that we can get that
-        playerData = db.getDbFileData();
+        dbService.create(player.getName(), WEALTH_DATA);
 
+        if (config.autoSaveEnabled()) {
+            autoSaveService.start(dbService.get());
+        }
+
+        PlayerData playerData = dbService.get().getDbFileData();
         if (playerData != null) {
             model.loadWealthDataFromFile(playerData);
             controller.refresh();
@@ -164,7 +150,6 @@ public class TradeMasterPlugin extends Plugin {
                         int itemQuantity = item.getQuantity();
                         bankWealth += (long) itemManager.getItemPrice(itemId) * itemQuantity; //TODO: what fucking price is this using ???
                     }
-
                     model.setBankWealth(bankWealth);
                     WEALTH_DATA.setBankWealth(bankWealth);
                     controller.refresh();
@@ -229,15 +214,17 @@ public class TradeMasterPlugin extends Plugin {
     public void onConfigChanged(ConfigChanged configChanged) {
         if (configChanged.getGroup().equals("trademaster")) {
             controller.refresh();
-        }
-    }
 
-
-    private void saveDbData() {
-        if (db != null) {
-            db.writeToFile();
-        } else {
-            log.warn("db is null!");
+            if (configChanged.getKey().equals("autoSaveInterval")) {
+                autoSaveService.reschedule();
+            }
+            if (configChanged.getKey().equals("autoSaveEnabled")) {
+                if (config.autoSaveEnabled()) {
+                    autoSaveService.start(dbService.get());
+                } else {
+                    autoSaveService.stop();
+                }
+            }
         }
     }
 }

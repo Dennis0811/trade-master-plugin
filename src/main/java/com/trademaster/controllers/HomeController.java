@@ -40,11 +40,11 @@ public class HomeController {
         String totalFormatted = formatNumber(total);
 
         view.setWealthText(
-                CONFIG.abbreviateHoverBank() ? abbreviateNumber(bank) : formatNumber(bank),
-                CONFIG.abbreviateHoverInventory() ? abbreviateNumber(inventory) : formatNumber(inventory),
-                CONFIG.abbreviateHoverGe() ? abbreviateNumber(ge) : formatNumber(ge),
-                CONFIG.abbreviateGpTotal() ? totalAbbreviated : totalFormatted,
-                CONFIG.abbreviateHoverGpTotal() ? totalAbbreviated : totalFormatted
+                CONFIG.abbreviateHoverBankEnabled() ? abbreviateNumber(bank) : formatNumber(bank),
+                CONFIG.abbreviateHoverInventoryEnabled() ? abbreviateNumber(inventory) : formatNumber(inventory),
+                CONFIG.abbreviateHoverGeEnabled() ? abbreviateNumber(ge) : formatNumber(ge),
+                CONFIG.abbreviateGpTotalEnabled() ? totalAbbreviated : totalFormatted,
+                CONFIG.abbreviateHoverGpTotalEnabled() ? totalAbbreviated : totalFormatted
         );
     }
 

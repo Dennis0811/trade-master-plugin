@@ -106,6 +106,7 @@ public class DbManager {
         }
     }
 
+
     /**
      * Creates a Json Object fills it with data with WealthData.
      *
@@ -142,7 +143,7 @@ public class DbManager {
     /**
      * Creates a folder to house all data / db files.
      */
-    public void createFolder() {
+    private void createFolder() {
         if (!DB_DIR.exists()) {
             log.info("DB directory is being created.");
             if (!DB_DIR.mkdir()) {
@@ -152,5 +153,4 @@ public class DbManager {
             log.info("DB directory already exists - {}", DB_DIR);
         }
     }
-
 }
