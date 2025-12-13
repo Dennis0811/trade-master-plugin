@@ -14,7 +14,7 @@ public class DbService {
 
     public void create(String playerName, WealthData wealthData) {
         dbManager = new DbManager(playerName, wealthData);
-        log.debug("DBManager created");
+        log.info("DBManager created");
     }
 
     public DbManager get() {
@@ -29,7 +29,7 @@ public class DbService {
         if (dbManager != null) {
             dbManager.writeToFile();
             dbManager = null;
-            log.debug("DbManager closed");
+            log.info("DbManager closed");
         }
     }
 
