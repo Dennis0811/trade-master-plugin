@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @PluginDescriptor(
@@ -148,57 +149,34 @@ public class TradeMasterPlugin extends Plugin {
 
     @Subscribe
     public void onBeforeRender(BeforeRender beforeRender) {
-        if (client.isMenuOpen()) {
+        if (client.isMenuOpen()) return;
+        MenuEntry menuEntry = getLastMenuEntry();
+        if (menuEntry == null || !shouldEnableTooltip(menuEntry)) return;
+
+        if (priceData == null) {
+            tooltipManager.add(new Tooltip("Loading..."));
             return;
         }
 
-        MenuEntry menuEntry = getLastMenuEntry();
-
-        if (menuEntry == null) return;
-
         int itemId = menuEntry.getItemId();
-
         if (itemId < 1) return;
-
-        ItemComposition itemComp = itemManager.getItemComposition(itemId);
-
-        if (!itemComp.isTradeable()) return;
-
-        Widget widget = menuEntry.getWidget();
-
-        if (shouldEnableTooltip(widget)) {
-            int lastBuyPrice = priceData.getHigh();
-            int lastSellPrice = priceData.getLow();
-            long lastBuyTime = priceData.getHighTime();
-            long lastSellTime = priceData.getLowTime();
-            int highAlchemyPrice = itemComp.getHaPrice();
-            String customMenuEntryText = createCustomMenuEntry(lastBuyPrice, lastSellPrice, lastBuyTime, lastSellTime, highAlchemyPrice);
-            String formattedText = ColorUtil.prependColorTag(customMenuEntryText, Color.WHITE);
-            tooltipManager.add(new Tooltip(formattedText));
-        }
+        ItemComposition comp = itemManager.getItemComposition(menuEntry.getItemId());
+        tooltipManager.add(new Tooltip(formatTooltip(priceData, comp)));
     }
+
 
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded) {
         MenuEntry menuEntry = getLastMenuEntry();
+        if (menuEntry == null) return;
         int itemId = menuEntry.getItemId();
+        if (lastHoveredItemId == itemId || itemId < 1) return;
+        if (!shouldEnableTooltip(menuEntry)) return;
 
-        if (lastHoveredItemId == itemId || itemId < 1) {
-            return;
-        }
-
-        ItemComposition itemComp = itemManager.getItemComposition(itemId);
-
-        if (!itemComp.isTradeable()) {
-            return;
-        }
-
-        Widget widget = menuEntry.getWidget();
-
-        if (shouldEnableTooltip(widget)) {
+        lastHoveredItemId = itemId;
+        CompletableFuture.runAsync(() -> {
             priceData = gePriceService.getPrice(itemId);
-            lastHoveredItemId = itemId;
-        }
+        });
     }
 
     @Subscribe
@@ -285,7 +263,12 @@ public class TradeMasterPlugin extends Plugin {
         return days + " days ago";
     }
 
-    private boolean shouldEnableTooltip(Widget widget) {
+    private boolean shouldEnableTooltip(MenuEntry menuEntry) {
+        int itemId = menuEntry.getItemId();
+        if (itemId < 1) return false;
+        ItemComposition itemComp = itemManager.getItemComposition(itemId);
+        if (!itemComp.isTradeable()) return false;
+        Widget widget = menuEntry.getWidget();
         return widget != null && (WidgetInfo.INVENTORY.getId() == widget.getId()
                 || WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
                 || WidgetInfo.BANK_ITEM_CONTAINER.getId() == widget.getId());
@@ -297,4 +280,15 @@ public class TradeMasterPlugin extends Plugin {
         if (lastEntryId < 0) return null;
         return menuEntries[lastEntryId];
     }
+
+    private String formatTooltip(GEItemPriceData data, ItemComposition comp) {
+        return ColorUtil.prependColorTag(
+                createCustomMenuEntry(
+                        data.getHigh(), data.getLow(), data.getHighTime(),
+                        data.getLowTime(), comp.getHaPrice()
+                ),
+                Color.WHITE
+        );
+    }
+
 }
