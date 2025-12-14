@@ -120,9 +120,6 @@ public class HomeView extends PluginPanel {
 
             section.add(rowPanel);
         }
-
         return section;
     }
-
-
 }

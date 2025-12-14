@@ -311,9 +311,9 @@ public class TradeMasterPlugin extends Plugin {
         long hours = minutes / 60;
         long days = hours / 24;
 
-        if (seconds < 60) return seconds + "sec ago";
-        if (minutes < 60) return minutes + "min ago";
-        if (hours < 24) return hours + "h ago";
+        if (seconds < 60) return seconds + " sec ago";
+        if (minutes < 60) return minutes + " min ago";
+        if (hours < 24) return hours + " hours ago";
         return days + " days ago";
     }
 

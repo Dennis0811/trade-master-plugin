@@ -73,6 +73,4 @@ public class WealthDataService {
         }
         return total;
     }
-
-
 }
