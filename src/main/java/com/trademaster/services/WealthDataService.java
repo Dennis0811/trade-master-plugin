@@ -21,12 +21,10 @@ public class WealthDataService {
 
     @Getter
     private final WealthData wealthData = new WealthData();
-    private HomeController controller;
     private HomeModel model;
+    @Getter
+    private boolean refreshPending;
 
-    public void attachController(HomeController controller) {
-        this.controller = controller;
-    }
 
     public void attachModel(HomeModel model) {
         this.model = model;
@@ -36,14 +34,14 @@ public class WealthDataService {
         long value = calculate(container);
         wealthData.setBankWealth(value);
         model.setBankWealth(value);
-        controller.refresh();
+        refreshPending = true;
     }
 
     public void updateInventory(ItemContainer container) {
         long value = calculate(container);
         wealthData.setInventoryWealth(value);
         model.setInventoryWealth(value);
-        controller.refresh();
+        refreshPending = true;
     }
 
     public void updateGe(GrandExchangeOffer[] offers) {
@@ -61,8 +59,13 @@ public class WealthDataService {
 
         wealthData.setGeWealth(value);
         model.setGeWealth(value);
-        controller.refresh();
+        refreshPending = true;
     }
+
+    public void clearRefreshPending() {
+        refreshPending = false;
+    }
+
 
     private long calculate(ItemContainer container) {
         long total = 0;

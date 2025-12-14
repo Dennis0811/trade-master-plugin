@@ -6,10 +6,13 @@ import com.trademaster.services.models.GEItemPriceData;
 import com.trademaster.services.models.GEPriceResponse;
 import com.trademaster.types.TimestepType;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ItemComposition;
+import net.runelite.client.game.ItemManager;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +28,9 @@ public class GEPriceService {
     private final static String TIMESERIES = "/timeseries";
     private final static String ID_QUERY_PARAMETER = "id";
     private final static long CACHE_LIFETIME = 60 * 1000;
+
+    @Inject
+    ItemManager itemManager;
 
     private TimestepType timestepType;
     private final OkHttpClient httpClient;
@@ -52,6 +58,11 @@ public class GEPriceService {
 
         return fresh;
     }
+
+    public int getFallbackPrice(int itemId) {
+        return itemManager.getItemComposition(itemId).getPrice();
+    }
+
 
     private GEItemPriceData fetchPrice(int itemId) {
         String url = String.format("%s%s?%s=%d", BASE_URL, LATEST, ID_QUERY_PARAMETER, itemId);

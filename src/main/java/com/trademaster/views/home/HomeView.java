@@ -36,13 +36,11 @@ public class HomeView extends PluginPanel {
         header.add(wealthLabel);
         header.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-
         // Search Bar
         IconTextField searchBar = new IconTextField();
         searchBar.setIcon(IconTextField.Icon.SEARCH);
         searchBar.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH, 30));
         searchBar.setBackground(new Color(30, 30, 30));
-
 
         // Home Panel Items
         JButton watchlistButton = createPanelButton("/bookmark_icon_white_filled.png", "Watchlist");
@@ -60,7 +58,6 @@ public class HomeView extends PluginPanel {
                 List.of(new AbstractMap.SimpleEntry<>("Total Gains", "PLACEHOLDER"),
                         new AbstractMap.SimpleEntry<>("Most Profitable Item", "PLACEHOLDER")));
 
-
         add(header);
         add(searchBar);
         add(watchlistButton);
@@ -69,7 +66,6 @@ public class HomeView extends PluginPanel {
         add(salesSection);
         add(expensesSection);
         add(profitSection);
-
 
         controller.setView(this);
         controller.refresh();

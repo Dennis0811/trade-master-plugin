@@ -30,6 +30,8 @@ import net.runelite.client.ui.overlay.tooltip.Tooltip;
 import net.runelite.client.ui.overlay.tooltip.TooltipManager;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.api.gameval.ItemID;
+
 
 import javax.inject.Inject;
 import java.awt.*;
@@ -73,6 +75,8 @@ public class TradeMasterPlugin extends Plugin {
     private boolean playerInitialized = false;
     private int lastHoveredItemId;
     private GEItemPriceData priceData;
+    private int fallbackPrice;
+    private int itemQuantity;
     private boolean showLastBuyPrice;
     private boolean showLastSellPrice;
     private boolean showLastBuyTime;
@@ -92,7 +96,6 @@ public class TradeMasterPlugin extends Plugin {
         HomeView view = new HomeView(controller);
 
         wealthDataService.attachModel(model);
-        wealthDataService.attachController(controller);
 
         PlayerWealthData preliminaryDbData = dbService.getFallBackData();
         if (preliminaryDbData != null) {
@@ -175,30 +178,43 @@ public class TradeMasterPlugin extends Plugin {
 
         int itemId = menuEntry.getItemId();
         if (itemId < 1) return;
-        ItemComposition comp = itemManager.getItemComposition(menuEntry.getItemId());
-        tooltipManager.add(new Tooltip(formatTooltip(priceData, comp)));
-    }
+        ItemComposition comp = itemManager.getItemComposition(itemId);
 
+        if (comp.isTradeable()) {
+            tooltipManager.add(new Tooltip(formatTooltip(priceData, comp)));
+        }
+        String formattedTooltipString = formatTooltip(priceData, fallbackPrice, comp);
+        if (formattedTooltipString != null) {
+            tooltipManager.add(new Tooltip(formattedTooltipString));
+        }
+    }
 
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded) {
         if (!geTooltipEnabled) return;
-        MenuEntry menuEntry = getLastMenuEntry();
+        MenuEntry menuEntry = menuEntryAdded.getMenuEntry();
         if (menuEntry == null) return;
         int itemId = menuEntry.getItemId();
         if (lastHoveredItemId == itemId || itemId < 1 || !shouldEnableTooltip(menuEntry)) return;
 
         lastHoveredItemId = itemId;
-        CompletableFuture.runAsync(() -> {
-            priceData = gePriceService.getPrice(itemId);
-        });
+
+        if (itemManager.getItemComposition(itemId).isTradeable()) {
+            CompletableFuture.runAsync(() -> {
+                priceData = gePriceService.getPrice(itemId);
+            });
+        } else {
+            fallbackPrice = gePriceService.getFallbackPrice(itemId);
+        }
+
+        Widget widget = menuEntry.getWidget();
+        if (widget == null) return;
+        itemQuantity = widget.getItemQuantity();
     }
 
     @Subscribe
     public void onConfigChanged(ConfigChanged configChanged) {
         if (configChanged.getGroup().equals("trademaster")) {
-            controller.refresh();
-
             switch (configChanged.getKey()) {
                 case "autoSaveInterval":
                     autoSaveService.reschedule();
@@ -228,8 +244,23 @@ public class TradeMasterPlugin extends Plugin {
                 case "showHaPrice":
                     showHaPrice = config.showHaPrice();
                     break;
+                case "abbreviateThreshold":
+                case "abbreviateGpTotalEnabled":
+                case "abbreviateHoverGpTotalEnabled":
+                case "abbreviateHoverBankEnabled":
+                case "abbreviateHoverInventoryEnabled":
+                case "abbreviateHoverGeEnabled":
+                    controller.refresh();
             }
         }
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick gameTick) {
+        if (!wealthDataService.isRefreshPending()) return;
+
+        controller.refresh();
+        wealthDataService.clearRefreshPending();
     }
 
 
@@ -258,42 +289,41 @@ public class TradeMasterPlugin extends Plugin {
         PlayerWealthData playerWealthData = dbService.get().getDbFileData();
         if (playerWealthData != null) {
             model.loadWealthDataFromFile(playerWealthData);
-            controller.refresh();
         }
     }
 
-    private String createCustomMenuEntry(int lastBuyPrice, int lastSellPrice, long lastBuyTime, long lastSellTime, int highAlchemyPrice) {
+    private String createCustomMenuEntry(int lastBuyPrice, int lastSellPrice, long lastBuyTime, long lastSellTime, int haPrice) {
         StringBuilder formatString = new StringBuilder();
         ArrayList<Object> arrayList = new ArrayList<>();
 
         String lastBuyPriceString = NumberFormatUtils.formatNumber(lastBuyPrice);
         String lastSellPriceString = NumberFormatUtils.formatNumber(lastSellPrice);
-        String highAlchemyPriceString = NumberFormatUtils.formatNumber(highAlchemyPrice);
+        String haPriceString = NumberFormatUtils.formatNumber(haPrice);
 
         if (showLastBuyPrice) {
-            formatString.append("%s: %s GP<br>");
+            formatString.append("%s: %s GP</br>");
             arrayList.add("Last GE Buy Price");
             arrayList.add(lastBuyPriceString);
         }
         if (showLastSellPrice) {
-            formatString.append("%s: %s GP<br>");
+            formatString.append("%s: %s GP</br>");
             arrayList.add("Last GE Sell Price");
             arrayList.add(lastSellPriceString);
         }
         if (showLastBuyTime) {
-            formatString.append("%s: %s<br>");
+            formatString.append("%s: %s</br>");
             arrayList.add("Last GE Buy Time");
             arrayList.add(timeAgo(lastBuyTime));
         }
         if (showLastSellTime) {
-            formatString.append("%s: %s<br>");
+            formatString.append("%s: %s</br>");
             arrayList.add("Last GE Sell Time");
             arrayList.add(timeAgo(lastSellTime));
         }
-        if (showHaPrice) {
-            formatString.append("%s: %s GP");
+        if (showHaPrice && haPrice > 0) {
+            formatString.append("%s: %s GP</br>");
             arrayList.add("HA");
-            arrayList.add(highAlchemyPriceString);
+            arrayList.add(haPriceString);
         }
         return String.format(formatString.toString(), arrayList.toArray());
     }
@@ -326,12 +356,13 @@ public class TradeMasterPlugin extends Plugin {
     private boolean shouldEnableTooltip(MenuEntry menuEntry) {
         int itemId = menuEntry.getItemId();
         if (itemId < 1) return false;
-        ItemComposition itemComp = itemManager.getItemComposition(itemId);
-        if (!itemComp.isTradeable()) return false;
         Widget widget = menuEntry.getWidget();
-        return widget != null && (WidgetInfo.INVENTORY.getId() == widget.getId()
-                || WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
-                || WidgetInfo.BANK_ITEM_CONTAINER.getId() == widget.getId());
+        return widget != null &&
+                (WidgetInfo.INVENTORY.getId() == widget.getId()
+                        || WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
+                        || WidgetInfo.BANK_ITEM_CONTAINER.getId() == widget.getId()
+                        || WidgetInfo.GRAND_EXCHANGE_INVENTORY_ITEMS_CONTAINER.getId() == widget.getId()
+                );
     }
 
     private MenuEntry getLastMenuEntry() {
@@ -344,11 +375,47 @@ public class TradeMasterPlugin extends Plugin {
     private String formatTooltip(GEItemPriceData data, ItemComposition comp) {
         return ColorUtil.prependColorTag(
                 createCustomMenuEntry(
-                        data.getHigh(), data.getLow(), data.getHighTime(),
-                        data.getLowTime(), comp.getHaPrice()
+                        data.getHigh(), data.getLow(), data.getHighTime(), data.getLowTime(), comp.getHaPrice()
                 ),
                 Color.WHITE
         );
     }
 
+    private String formatTooltip(GEItemPriceData priceData, int fallbackPrice, ItemComposition comp) {
+        int usedPrice = fallbackPrice;
+        boolean itemIsTradeable = comp.isTradeable();
+
+        if (priceData != null && itemIsTradeable) {
+            usedPrice = priceData.getLow();
+        }
+
+        StringBuilder formatString = new StringBuilder();
+        ArrayList<String> arrayList = new ArrayList<>();
+        long priceQuantity = (long) usedPrice * itemQuantity;
+        long haPriceQuantity = (long) comp.getHaPrice() * itemQuantity;
+
+        if (comp.getId() == ItemID.COINS || comp.getId() == ItemID.PLATINUM) {
+            formatString.append("%s GP</br>");
+            arrayList.add(NumberFormatUtils.formatNumber(priceQuantity));
+        } else if (priceQuantity > 0 && itemIsTradeable) {
+            formatString.append("%s GP");
+            arrayList.add(NumberFormatUtils.formatNumber(priceQuantity));
+
+            if (itemQuantity > 1) {
+                formatString.append(" (%s ea)");
+                arrayList.add(NumberFormatUtils.formatNumber(usedPrice));
+            }
+            formatString.append("</br>");
+        }
+
+        if (showHaPrice && haPriceQuantity > 0) {
+            formatString.append("%s: %s GP");
+            arrayList.add("HA");
+            arrayList.add(String.valueOf(haPriceQuantity));
+        }
+
+        if (formatString.toString().isEmpty()) return null;
+
+        return ColorUtil.prependColorTag(String.format(formatString.toString(), arrayList.toArray()), Color.WHITE);
+    }
 }
