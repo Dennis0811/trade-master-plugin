@@ -39,7 +39,7 @@ public interface TradeMasterConfig extends Config {
 
     @ConfigSection(
             position = 2,
-            name = "Tooltip GE info",
+            name = "In-Game Tooltip Info",
             description = "Shows various information from the Grand Exchange in the tooltip when hovering over an item."
     )
     String tooltipInfo = "tooltipInfo";
@@ -109,21 +109,10 @@ public interface TradeMasterConfig extends Config {
         return true;
     }
 
-    @ConfigItem(
-            section = tooltipInfo,
-            position = 7,
-            keyName = "showHaPrice",
-            name = "Show HA price",
-            description = "Displays the high alchemy price of an item in the summary section."
-    )
-    default boolean showHaPrice() {
-        return true;
-    }
-
 
     @ConfigSection(
-            name = "Abbreviate numbers",
-            description = "Turn big numbers into short forms like 1.2 M or 2.5 B.",
+            name = "Sidebar Panel",
+            description = "Settings for sidebar GP display.",
             position = 3
     )
     String shortenSection = "shortenSection";
@@ -131,23 +120,23 @@ public interface TradeMasterConfig extends Config {
     @ConfigItem(
             section = shortenSection,
             position = 1,
+            keyName = "abbreviateGpTotalEnabled",
+            name = "Abbreviate GP total",
+            description = "Abbreviates GP total value."
+    )
+    default boolean abbreviateGpTotalEnabled() {
+        return true;
+    }
+
+    @ConfigItem(
+            section = shortenSection,
+            position = 2,
             keyName = "abbreviateThreshold",
             name = "Abbreviate above",
             description = "Show abbreviated format (1.2 M) for numbers larger than this value."
     )
     default AbbreviateThresholdTypes abbreviateThreshold() {
         return AbbreviateThresholdTypes.TRILLION;
-    }
-
-    @ConfigItem(
-            section = shortenSection,
-            position = 2,
-            keyName = "abbreviateGpTotalEnabled",
-            name = "Abbreviate GP total",
-            description = "Turn on abbreviated GP display."
-    )
-    default boolean abbreviateGpTotalEnabled() {
-        return true;
     }
 
     @ConfigItem(

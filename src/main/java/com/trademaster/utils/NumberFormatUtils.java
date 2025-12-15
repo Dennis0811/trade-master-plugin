@@ -8,6 +8,10 @@ public class NumberFormatUtils {
         return NumberFormat.getNumberInstance().format(value);
     }
 
+    public static String abbreviateNumber(long value) {
+        return abbreviateNumber(value, 1_000);
+    }
+
     public static String abbreviateNumber(long value, long minNumber) {
         if (value < minNumber) {
             return formatNumber(value);

@@ -129,8 +129,8 @@ public class CustomTooltipService {
         long lastBuyTime = data.getHighTime();
         long lastSellTime = data.getLowTime();
 
-        String lastBuyPriceString = NumberFormatUtils.formatNumber(lastBuyPrice);
-        String lastSellPriceString = NumberFormatUtils.formatNumber(lastSellPrice);
+        String lastBuyPriceString = NumberFormatUtils.abbreviateNumber(lastBuyPrice);
+        String lastSellPriceString = NumberFormatUtils.abbreviateNumber(lastSellPrice);
 
         if (config.showLastBuyPrice()) {
             formatString.append("Last GE Buy Price: ")
@@ -162,7 +162,7 @@ public class CustomTooltipService {
         boolean itemIsTradeable = comp.isTradeable();
 
         if (priceData != null && itemIsTradeable) {
-            usedPrice = priceData.getLow();
+            usedPrice = Math.min(priceData.getLow(), priceData.getHigh());
         }
 
         StringBuilder formatString = new StringBuilder();
@@ -177,16 +177,16 @@ public class CustomTooltipService {
                     .append(" GP</br>");
         } else if (priceQuantity > 0 && itemIsTradeable) {
             formatString.append("GE: ")
-                    .append(NumberFormatUtils.formatNumber(priceQuantity))
+                    .append(NumberFormatUtils.abbreviateNumber(priceQuantity))
                     .append(" GP");
 
             appendSingularPrice(formatString, usedPrice);
             formatString.append("</br>");
         }
 
-        if (config.showHaPrice() && haPriceQuantity > 0) {
+        if (haPriceQuantity > 0) {
             formatString.append("HA: ")
-                    .append(NumberFormatUtils.formatNumber(haPriceQuantity))
+                    .append(NumberFormatUtils.abbreviateNumber(haPriceQuantity))
                     .append(" GP");
 
             appendSingularPrice(formatString, comp.getHaPrice());
@@ -223,7 +223,7 @@ public class CustomTooltipService {
     private void appendSingularPrice(StringBuilder sb, int price) {
         if (itemQuantity > 1) {
             sb.append(" (")
-                    .append(NumberFormatUtils.formatNumber(price))
+                    .append(NumberFormatUtils.abbreviateNumber(price))
                     .append(" ea)");
         }
     }
